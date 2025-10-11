@@ -1,0 +1,43 @@
+services:
+  rsync-source:
+    build: .
+    container_name: cfs-transfer-source
+    restart: unless-stopped
+    
+    environment:
+      - TARGET_HOST=${TARGET_HOST}
+      - SOURCE_PATH=${SOURCE_PATH:-/mnt}
+      - NFS_SERVER=${NFS_SERVER}
+      - NFS_PATH=${NFS_PATH:-/cfs}
+      - RSYNC_MODULE=${RSYNC_MODULE:-cfs}
+      - RSYNC_PASSWORD=${RSYNC_PASSWORD:-changeme}
+      - RSYNC_USER=${RSYNC_USER:-root}
+      - RSYNC_PORT=${RSYNC_PORT:-873}
+      - TZ=Asia/Shanghai
+      - INOTIFY_EVENTS=${INOTIFY_EVENTS:-modify,delete,create,attrib,move}
+    
+    volumes:
+      # - ${SOURCE_PATH}:/data
+      - ./logs:/var/log
+      - nfs-data:/data
+    
+    networks:
+      - cfs-network
+    
+    healthcheck:
+      test: ["CMD", "pgrep", "inotifywait"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  nfs-data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: "addr=${NFS_SERVER},vers=3,noresvport,nolock"
+      device: ":${NFS_PATH}"
+
+networks:
+  cfs-network:
+    driver: bridge

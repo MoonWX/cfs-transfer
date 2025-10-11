@@ -1,0 +1,45 @@
+services:
+  rsync-target:
+    build: .
+    container_name: cfs-transfer-target
+    restart: unless-stopped
+    
+    environment:
+      - RSYNC_PASSWORD=${RSYNC_PASSWORD:-changeme}
+      - RSYNC_USER=${RSYNC_USER:-root}
+      - NFS_SERVER=${NFS_SERVER}
+      - NFS_PATH=${NFS_PATH:-/cfs}
+      - RSYNC_PORT=${RSYNC_PORT:-873}
+      - DATA_PATH=${DATA_PATH:-/mnt}
+      - MAX_CONNECTIONS=${MAX_CONNECTIONS:-200}
+      - TZ=Asia/Shanghai
+    
+    ports:
+      - "${RSYNC_PORT}:873"
+    
+    volumes:
+      # - ${DATA_PATH}:/data
+      - ./logs:/var/log
+      # 如果需要挂载 NFS，取消注释下面的行
+      - nfs-data:/data
+    
+    networks:
+      - cfs-network
+    
+    healthcheck:
+      test: ["CMD", "pgrep", "rsync"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  nfs-data:
+    driver: local
+    driver_opts:
+      type: nfs
+      o: "addr=${NFS_SERVER},vers=3,noresvport,nolock"
+      device: ":${NFS_PATH}"
+
+networks:
+  cfs-network:
+    driver: bridge

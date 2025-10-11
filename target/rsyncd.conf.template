@@ -1,0 +1,28 @@
+uid = root
+gid = root
+# 把chroot从yes改为no，才能解决权限问题，要注意这里是否要改回
+use chroot = no
+max connections = ${MAX_CONNECTIONS}
+timeout = 900
+pid file = /var/run/rsyncd.pid
+lock file = /var/run/rsync.lock
+log file = /var/log/rsyncd.log
+secrets file = /etc/rsync/rsync.pass
+
+# 不压缩已压缩的文件类型
+dont compress = *.gz *.tgz *.zip *.z *.Z *.rpm *.deb *.bz2 *.xz *.7z *.rar
+
+[cfs]
+    # 目标端存放路径，源端的数据将同步到此容器目录下，且DATA_PATH已与此目录Bind，通常无需修改。
+    path = /data
+    comment = CFS Data Migration Target
+    read only = no
+    list = yes
+    auth users = ${RSYNC_USER}
+    ignore errors = yes
+    
+    transfer logging = yes
+    log format = %t %a %m %f %b
+    
+    hosts allow = 0.0.0.0/0
+    # hosts deny = *
