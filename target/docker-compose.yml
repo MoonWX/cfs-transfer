@@ -18,10 +18,8 @@ services:
       - "${RSYNC_PORT}:873"
     
     volumes:
-      # - ${DATA_PATH}:/data
+      - ${DATA_PATH}:/data
       - ./logs:/var/log
-      # 如果需要挂载 NFS，取消注释下面的行
-      - nfs-data:/data
     
     networks:
       - cfs-network
@@ -31,14 +29,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-
-volumes:
-  nfs-data:
-    driver: local
-    driver_opts:
-      type: nfs
-      o: "addr=${NFS_SERVER},vers=3,noresvport,nolock"
-      device: ":${NFS_PATH}"
 
 networks:
   cfs-network:

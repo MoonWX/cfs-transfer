@@ -17,9 +17,8 @@ services:
       - INOTIFY_EVENTS=${INOTIFY_EVENTS:-modify,delete,create,attrib,move}
     
     volumes:
-      # - ${SOURCE_PATH}:/data
+      - ${SOURCE_PATH}:/data
       - ./logs:/var/log
-      - nfs-data:/data
     
     networks:
       - cfs-network
@@ -29,14 +28,6 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
-
-volumes:
-  nfs-data:
-    driver: local
-    driver_opts:
-      type: nfs
-      o: "addr=${NFS_SERVER},vers=3,noresvport,nolock"
-      device: ":${NFS_PATH}"
 
 networks:
   cfs-network:

@@ -1,6 +1,7 @@
 FROM alpine:3.18
 
-RUN apk add --no-cache \
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/repositories \
+    && apk add --no-cache \
     rsync \
     bash \
     tzdata \
