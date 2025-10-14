@@ -33,37 +33,44 @@ jobs:
           username: ${{ secrets.JD_REGISTRY_USERNAME }}
           password: ${{ secrets.JD_REGISTRY_PASSWORD }}
 
-      - name: Build and push target image to Docker Hub
+      - name: Build target image
         uses: docker/build-push-action@v5
         with:
           context: ./target
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/cfs-transfer-target:latest,${{ secrets.DOCKERHUB_USERNAME }}/cfs-transfer-target:${{ github.sha }}
+          load: true
+          tags: temp-target:latest
           cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/cfs-transfer-target:buildcache
           cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/cfs-transfer-target:buildcache,mode=max
+      - name: Tag and push to Docker Hub
+        run: |
+          docker tag temp-target:latest ${{ secrets.DOCKERHUB_USERNAME }}/cfs-transfer-target:latest
+          docker tag temp-target:latest ${{ secrets.DOCKERHUB_USERNAME }}/cfs-transfer-target:${{ github.sha }}
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/cfs-transfer-target:latest
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/cfs-transfer-target:${{ github.sha }}
+      - name: Tag and push to JD Cloud
+        run: |
+          docker tag temp-target:latest wax-cn-east-1.jcr.service.jdcloud.com/cfs-transfer-target:latest
+          docker tag temp-target:latest wax-cn-east-1.jcr.service.jdcloud.com/cfs-transfer-target:${{ github.sha }}
+          docker push wax-cn-east-1.jcr.service.jdcloud.com/cfs-transfer-target:latest
+          docker push wax-cn-east-1.jcr.service.jdcloud.com/cfs-transfer-target:${{ github.sha }}
       
-      - name: Build and push target image to JD Cloud
-        uses: docker/build-push-action@v5
-        with:
-          context: ./target
-          push: true
-          tags: wax-cn-east-1.jcr.service.jdcloud.com/cfs-transfer-source:latest,wax-cn-east-1.jcr.service.jdcloud.com/cfs-transfer-source:${{ github.sha }}
-          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/cfs-transfer-target:buildcache
-
-      - name: Build and push source image to Docker Hub
+      - name: Build source image
         uses: docker/build-push-action@v5
         with:
           context: ./source
-          push: true
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/cfs-transfer-source:latest,${{ secrets.DOCKERHUB_USERNAME }}/cfs-transfer-source:${{ github.sha }}
+          load: true
+          tags: temp-source:latest
           cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/cfs-transfer-source:buildcache
           cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/cfs-transfer-source:buildcache,mode=max
-
-      - name: Build and push source image to JD Cloud
-        uses: docker/build-push-action@v5
-        with:
-          context: ./source
-          push: true
-          tags: |
-            wax-cn-east-1.jcr.service.jdcloud.com/cfs-transfer-source:latest,wax-cn-east-1.jcr.service.jdcloud.com/cfs-transfer-source:${{ github.sha }}
-          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/cfs-transfer-source:buildcache
+      - name: Tag and push to Docker Hub
+        run: |
+          docker tag temp-source:latest ${{ secrets.DOCKERHUB_USERNAME }}/cfs-transfer-source:latest
+          docker tag temp-source:latest ${{ secrets.DOCKERHUB_USERNAME }}/cfs-transfer-source:${{ github.sha }}
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/cfs-transfer-source:latest
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/cfs-transfer-source:${{ github.sha }}
+      - name: Tag and push to JD Cloud
+        run: |
+          docker tag temp-source:latest wax-cn-east-1.jcr.service.jdcloud.com/cfs-transfer-source:latest
+          docker tag temp-source:latest wax-cn-east-1.jcr.service.jdcloud.com/cfs-transfer-source:${{ github.sha }}
+          docker push wax-cn-east-1.jcr.service.jdcloud.com/cfs-transfer-source:latest
+          docker push wax-cn-east-1.jcr.service.jdcloud.com/cfs-transfer-source:${{ github.sha }}
