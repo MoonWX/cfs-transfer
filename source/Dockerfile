@@ -8,6 +8,7 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/re
     tzdata \
     nfs-utils \
     procps \
+    nfs-utils \
     && rm -rf /var/cache/apk/*
 
 RUN mkdir -p /data /scripts /var/log

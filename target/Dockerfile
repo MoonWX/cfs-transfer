@@ -8,6 +8,7 @@ RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/re
     nfs-utils \
     gettext \
     jq \
+    nfs-utils \
     && rm -rf /var/cache/apk/*
 
 RUN mkdir -p /data /var/log /var/run /etc/rsync

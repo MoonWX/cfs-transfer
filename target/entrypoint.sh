@@ -11,6 +11,17 @@ envsubst < /etc/rsync/rsyncd.conf.template > /etc/rsyncd.conf
 
 mkdir -p /data
 
+echo "Attempting to mount NFS..."
+if mount -t nfs -o ${NFS_O_PARAMETER} \
+    ${NFS_SERVER}:${NFS_PATH} /data; then
+    echo "✓ NFS mounted successfully"
+    df -h /data
+    ls -la /data
+else
+    echo "✗ NFS mount failed!"
+    exit 1
+fi
+
 echo "Configuration:"
 echo "  User: ${RSYNC_USER}"
 echo "  Data Path: /data"

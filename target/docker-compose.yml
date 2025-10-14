@@ -3,14 +3,15 @@ services:
     build: .
     container_name: cfs-transfer-target
     restart: unless-stopped
-    
+    privileged: true
     environment:
-      - RSYNC_PASSWORD=${RSYNC_PASSWORD:-changeme}
-      - RSYNC_USER=${RSYNC_USER:-root}
+      - LOCAL_PATH=${LOCAL_PATH:-/mnt}
       - NFS_SERVER=${NFS_SERVER}
       - NFS_PATH=${NFS_PATH:-/cfs}
+      - NFS_O_PARAMETER=${NFS_O_PARAMETER:-vers=3,noresvport,nolock}
+      - RSYNC_PASSWORD=${RSYNC_PASSWORD:-changeme}
+      - RSYNC_USER=${RSYNC_USER:-root}
       - RSYNC_PORT=${RSYNC_PORT:-873}
-      - DATA_PATH=${DATA_PATH:-/mnt}
       - MAX_CONNECTIONS=${MAX_CONNECTIONS:-200}
       - TZ=Asia/Shanghai
     
@@ -18,7 +19,7 @@ services:
       - "${RSYNC_PORT}:873"
     
     volumes:
-      - ${DATA_PATH}:/data
+      # - ${DATA_PATH}:/data
       - ./logs:/var/log
     
     networks:

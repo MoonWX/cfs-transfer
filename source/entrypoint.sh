@@ -9,10 +9,21 @@ if [ -z "${TARGET_HOST}" ]; then
     exit 1
 fi
 
+echo "Attempting to mount NFS..."
+if mount -t nfs -o ${NFS_O_PARAMETER} \
+    ${NFS_SERVER}:${NFS_PATH} /data; then
+    echo "✓ NFS mounted successfully"
+    df -h /data
+    ls -la /data
+else
+    echo "✗ NFS mount failed!"
+    exit 1
+fi
+
 mkdir -p /var/log
 
 echo "Configuration:"
-echo "  Source Path: ${SOURCE_PATH:-/mnt}"
+# echo "  Source Path: ${SOURCE_PATH:-/mnt}"
 echo "  Target Host: ${TARGET_HOST}"
 echo "  Rsync Module: ${RSYNC_MODULE:-cfs}"
 echo "  Rsync Port: ${RSYNC_PORT:-873}"
