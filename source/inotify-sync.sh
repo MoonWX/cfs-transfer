@@ -5,6 +5,7 @@
 set -euo pipefail
 
 TARGET_HOST="${TARGET_HOST:?TARGET_HOST is required}"
+SYNC_SUBDIR="${SYNC_SUBDIR:-.}"
 RSYNC_MODULE="${RSYNC_MODULE:-cfs}"
 RSYNC_USER="${RSYNC_USER:-root}"
 RSYNC_PORT="${RSYNC_PORT:-873}"
@@ -41,8 +42,7 @@ incremental_sync_worker() {
                 --timeout=100 \
                 --delete \
                 --password-file=${PASSWORD_FILE} \
-                --relative \
-                /data/./ \
+                /data/${SYNC_SUBDIR} \
                 ${RSYNC_USER}@${TARGET_HOST}::${RSYNC_MODULE} \
                 >> ${RSYNC_LOG} 2>&1
             
@@ -84,8 +84,7 @@ full_sync() {
         --delete \
         --timeout=300 \
         --password-file=${PASSWORD_FILE} \
-        --relative \
-        /data/./ \
+        /data/${SYNC_SUBDIR} \
         ${RSYNC_USER}@${TARGET_HOST}::${RSYNC_MODULE} \
         2>&1 | tee -a ${RSYNC_LOG}; then
         log "=== Initial Full Sync Completed Successfully ==="

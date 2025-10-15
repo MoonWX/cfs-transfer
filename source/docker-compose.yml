@@ -6,6 +6,7 @@ services:
     privileged: true
     environment:
       - TARGET_HOST=${TARGET_HOST}
+      - SYNC_SUBDIR=${SYNC_SUBDIR:-.}
       - LOCAL_PATH=${LOCAL_PATH:-/mnt}
       - NFS_SERVER=${NFS_SERVER}
       - NFS_PATH=${NFS_PATH:-/cfs}
