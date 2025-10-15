@@ -5,7 +5,6 @@
 set -euo pipefail
 
 TARGET_HOST="${TARGET_HOST:?TARGET_HOST is required}"
-SOURCE_PATH="${SOURCE_PATH:-/data}"
 RSYNC_MODULE="${RSYNC_MODULE:-cfs}"
 RSYNC_USER="${RSYNC_USER:-root}"
 RSYNC_PORT="${RSYNC_PORT:-873}"
@@ -42,7 +41,8 @@ incremental_sync_worker() {
                 --timeout=100 \
                 --delete \
                 --password-file=${PASSWORD_FILE} \
-                ${SOURCE_PATH} \
+                --relative \
+                /data/./ \
                 ${RSYNC_USER}@${TARGET_HOST}::${RSYNC_MODULE} \
                 >> ${RSYNC_LOG} 2>&1
             
@@ -65,7 +65,7 @@ inotify_monitor() {
         --timefmt '%Y-%m-%d %H:%M:%S' \
         --format '%T %w%f %e' \
         -e ${INOTIFY_EVENTS} \
-        ${SOURCE_PATH} | while read -r timestamp filepath events; do
+        /data | while read -r timestamp filepath events; do
             echo "${timestamp} ${filepath} ${events}" >> ${INOTIFY_LOG}
             echo "${filepath}" >> ${INCREMENTAL_QUEUE}  # 加入队列
     done
@@ -73,7 +73,7 @@ inotify_monitor() {
 
 full_sync() {
     log "=== Starting Initial Full Sync ==="
-    log "Source: ${SOURCE_PATH}"
+    # log "Source: ${SOURCE_PATH}"
     log "Target: ${RSYNC_USER}@${TARGET_HOST}::${RSYNC_MODULE}"
     
     touch ${FULL_SYNC_LOCK}
@@ -84,7 +84,8 @@ full_sync() {
         --delete \
         --timeout=300 \
         --password-file=${PASSWORD_FILE} \
-        ${SOURCE_PATH} \
+        --relative \
+        /data/./ \
         ${RSYNC_USER}@${TARGET_HOST}::${RSYNC_MODULE} \
         2>&1 | tee -a ${RSYNC_LOG}; then
         log "=== Initial Full Sync Completed Successfully ==="
@@ -108,7 +109,7 @@ cleanup() {
 main() {
     log "=== CFS Migration Source - Starting Parallel Mode ==="
     log "Configuration:"
-    log "  Source Path: ${SOURCE_PATH}"
+    # log "  Source Path: ${SOURCE_PATH}"
     log "  Target Host: ${TARGET_HOST}"
     log "  Rsync Module: ${RSYNC_MODULE}"
     log "  Rsync Port: ${RSYNC_PORT}"
