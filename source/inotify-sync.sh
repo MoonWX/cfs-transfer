@@ -25,6 +25,22 @@ log() {
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] $*" | tee -a ${RSYNC_LOG}
 }
 
+generate_includes() {
+    local includes=()
+    while IFS= read -r path; do
+        if [ -n "$path" ]; then
+            includes+=("$path")
+            local dir=$(dirname "$path")
+            while [ "$dir" != "/" ] && [ -n "$dir" ]; do
+                includes+=("$dir/")
+                dir=$(dirname "$dir")
+            done
+            includes+=("/")  # 确保根目录
+        fi
+    done < ${INCREMENTAL_QUEUE}
+    printf "%s\n" "${includes[@]}" | sort -u > /tmp/rsync_includes.txt
+}
+
 incremental_sync_worker() {
     log "=== Incremental Sync Worker Started ==="
     
@@ -42,14 +58,15 @@ incremental_sync_worker() {
             local batch_size=$(wc -l < ${INCREMENTAL_QUEUE})
             log "Processing incremental batch (${batch_size} unique changes)"
             
+            generate_includes
             rsync -avzP \
                 --port=${RSYNC_PORT} \
                 --timeout=100 \
                 --delete \
-                --include-from=${INCREMENTAL_QUEUE} \
+                --include-from=/tmp/rsync_includes.txt \
                 --exclude='*' \
                 --password-file=${PASSWORD_FILE} \
-                /data/${SYNC_SUBDIR} \
+                /data/${SYNC_SUBDIR}/ \
                 ${RSYNC_USER}@${TARGET_HOST}::${RSYNC_MODULE} \
                 >> ${RSYNC_LOG} 2>&1
             
@@ -71,13 +88,17 @@ inotify_monitor() {
     log "Monitoring events: ${INOTIFY_EVENTS}"
     
     inotifywait -mrq \
-        --timefmt '%Y-%m-%d %H:%M:%S' \
+        --timefmt '%Y-%m-%d_%H:%M:%S' \
         --format '%T %w%f %e' \
         -e ${INOTIFY_EVENTS} \
         /data | while read -r timestamp filepath events; do
-            relpath="${filepath#/data/}"
+            relpath="/${filepath#/data/}"
             echo "${timestamp} ${filepath} ${events}" >> ${INOTIFY_LOG}
             echo "${relpath}" >> ${INCREMENTAL_QUEUE}
+            if [[ "${events}" == *ISDIR* ]]; then
+                echo "${relpath}/" >> ${INCREMENTAL_QUEUE}
+                echo "${relpath}/***" >> ${INCREMENTAL_QUEUE}
+            fi
     done
 }
 
@@ -93,7 +114,7 @@ full_sync() {
         --delete \
         --timeout=300 \
         --password-file=${PASSWORD_FILE} \
-        /data/${SYNC_SUBDIR} \
+        /data/${SYNC_SUBDIR}/ \
         ${RSYNC_USER}@${TARGET_HOST}::${RSYNC_MODULE} \
         2>&1 | tee -a ${RSYNC_LOG}; then
         log "=== Initial Full Sync Completed Successfully ==="
@@ -110,7 +131,7 @@ cleanup() {
     log "Shutting down gracefully..."
     kill ${INOTIFY_PID} 2>/dev/null || true
     kill ${WORKER_PID} 2>/dev/null || true
-    rm -f ${PASSWORD_FILE} ${FULL_SYNC_LOCK} ${INCREMENTAL_QUEUE}
+    rm -f ${PASSWORD_FILE} ${FULL_SYNC_LOCK} ${INCREMENTAL_QUEUE} /tmp/rsync_includes.txt
     exit 0
 }
 
