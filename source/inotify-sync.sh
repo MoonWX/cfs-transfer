@@ -19,7 +19,6 @@ FULL_SYNC_LOCK="/tmp/full_sync.lock"
 echo "${RSYNC_PASSWORD}" > ${PASSWORD_FILE}
 chmod 600 ${PASSWORD_FILE}
 
-# 创建队列文件
 touch ${INCREMENTAL_QUEUE}
 
 log() {
@@ -30,17 +29,25 @@ incremental_sync_worker() {
     log "=== Incremental Sync Worker Started ==="
     
     while true; do
+        if [ -f ${FULL_SYNC_LOCK} ]; then
+            log "Full sync in progress - skipping incremental"
+            sleep 5
+            continue
+        fi
+        
         if [ -s ${INCREMENTAL_QUEUE} ]; then
-            local batch
-            batch=$(cat ${INCREMENTAL_QUEUE})
-            > ${INCREMENTAL_QUEUE}
+            sort -u ${INCREMENTAL_QUEUE} > /tmp/rsync_batch.txt
+            mv /tmp/rsync_batch.txt ${INCREMENTAL_QUEUE}
             
-            log "Processing incremental batch ($(echo "$batch" | wc -l) changes)"
+            local batch_size=$(wc -l < ${INCREMENTAL_QUEUE})
+            log "Processing incremental batch (${batch_size} unique changes)"
             
             rsync -avzP \
                 --port=${RSYNC_PORT} \
                 --timeout=100 \
                 --delete \
+                --include-from=${INCREMENTAL_QUEUE} \
+                --exclude='*' \
                 --password-file=${PASSWORD_FILE} \
                 /data/${SYNC_SUBDIR} \
                 ${RSYNC_USER}@${TARGET_HOST}::${RSYNC_MODULE} \
@@ -51,6 +58,8 @@ incremental_sync_worker() {
             else
                 log "ERROR: Incremental sync failed"
             fi
+            
+            > ${INCREMENTAL_QUEUE}
         fi
         
         sleep 2
@@ -66,14 +75,14 @@ inotify_monitor() {
         --format '%T %w%f %e' \
         -e ${INOTIFY_EVENTS} \
         /data | while read -r timestamp filepath events; do
+            relpath="${filepath#/data/}"
             echo "${timestamp} ${filepath} ${events}" >> ${INOTIFY_LOG}
-            echo "${filepath}" >> ${INCREMENTAL_QUEUE}  # 加入队列
+            echo "${relpath}" >> ${INCREMENTAL_QUEUE}
     done
 }
 
 full_sync() {
     log "=== Starting Initial Full Sync ==="
-    # log "Source: ${SOURCE_PATH}"
     log "Target: ${RSYNC_USER}@${TARGET_HOST}::${RSYNC_MODULE}"
     
     touch ${FULL_SYNC_LOCK}
@@ -101,14 +110,13 @@ cleanup() {
     log "Shutting down gracefully..."
     kill ${INOTIFY_PID} 2>/dev/null || true
     kill ${WORKER_PID} 2>/dev/null || true
-    rm -f ${PASSWORD_FILE} ${FULL_SYNC_LOCK}
+    rm -f ${PASSWORD_FILE} ${FULL_SYNC_LOCK} ${INCREMENTAL_QUEUE}
     exit 0
 }
 
 main() {
     log "=== CFS Migration Source - Starting Parallel Mode ==="
     log "Configuration:"
-    # log "  Source Path: ${SOURCE_PATH}"
     log "  Target Host: ${TARGET_HOST}"
     log "  Rsync Module: ${RSYNC_MODULE}"
     log "  Rsync Port: ${RSYNC_PORT}"
