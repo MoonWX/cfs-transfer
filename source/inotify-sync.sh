@@ -42,7 +42,7 @@ incremental_sync_worker() {
                 --timeout=100 \
                 --delete \
                 --password-file=${PASSWORD_FILE} \
-                ${SOURCE_PATH}/ \
+                ${SOURCE_PATH} \
                 ${RSYNC_USER}@${TARGET_HOST}::${RSYNC_MODULE} \
                 >> ${RSYNC_LOG} 2>&1
             
@@ -84,7 +84,7 @@ full_sync() {
         --delete \
         --timeout=300 \
         --password-file=${PASSWORD_FILE} \
-        ${SOURCE_PATH}/ \
+        ${SOURCE_PATH} \
         ${RSYNC_USER}@${TARGET_HOST}::${RSYNC_MODULE} \
         2>&1 | tee -a ${RSYNC_LOG}; then
         log "=== Initial Full Sync Completed Successfully ==="
